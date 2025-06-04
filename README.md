@@ -2,6 +2,23 @@
 ## referenced from https://github.com/spawner1145/TeaCache/blob/main/TeaCache4Lumina2/teacache_lumina2.py
 ## firstly transplanted by [@fexli](https://github.com/fexli)
 ## retransplanted by @spawner
+## Installation
+
+### Manual installation
+
+```bash
+// switch to your project's root directory
+cd custom_nodes
+git clone https://github.com/spawner1145/CUI-Lumina2-TeaCache.git
+```
+
+### Installation via comfyui-manager
+
+1. Open ComfyUI WebUI
+2. Navigate to `Manager` -> `Install Custom Node`
+3. Enter `CUI-Lumina2-TeaCache` in the `Search` field, and click `Search`
+4. Click `Install`
+
 # usage
 ![image](https://github.com/user-attachments/assets/e4fb8f9f-656e-49ce-9ef9-52827f728bdf)
 1. Connect the `TeaCache` node between the `UNet Loader` and `KSampler` in your workflow.
