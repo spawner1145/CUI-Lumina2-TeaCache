@@ -3,10 +3,9 @@ import numpy as np
 from comfy.ldm.common_dit import pad_to_patch_size  # noqa
 from unittest.mock import patch
 
-
 # referenced from https://github.com/spawner1145/TeaCache/blob/main/TeaCache4Lumina2/teacache_lumina2.py
-# transplanted by @fexli
-# retransplanted by @spawner1145
+# firstly transplanted by @fexli https://github.com/fexli
+# retransplanted by @spawner1145 https://github.com/spawner1145
 def teacache_forward_working(
         self, x, timesteps, context, num_tokens, attention_mask=None, transformer_options={}, **kwargs
 ):
