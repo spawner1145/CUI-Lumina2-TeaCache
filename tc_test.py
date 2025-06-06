@@ -54,7 +54,7 @@ class TeaCacheStateManager:
 
 STATE_MANAGER = TeaCacheStateManager()
 
-# 缓存逻辑
+# 缓存逻辑 (未改变)
 def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs):
     transformer_options = kwargs.get('transformer_options', {})
     run_id = transformer_options.get('teacache_run_id')
@@ -145,6 +145,14 @@ class TeaCache_Patcher:
     def INPUT_TYPES(cls):
         modes = ["手动输入", "自动微调", "贝叶斯优化"] if SKOPT_AVAILABLE else ["手动输入", "自动微调"]
         metrics = ["SQ_Ratio (基于命中率)", "SQF_Ratio (基于LPIPS)"] if LPIPS_AVAILABLE else ["SQ_Ratio (基于命中率)"]
+        
+        # 只有在LPIPS可用时，才显示质量阈值选项
+        optional_inputs = {
+            "coefficients_str": ("STRING", {"multiline": True, "default": json.dumps(cls.DEFAULT_COEFFS)}),
+        }
+        if LPIPS_AVAILABLE:
+            optional_inputs["max_lpips_thresh"] = ("FLOAT", {"default": 0.6, "min": 0.0, "max": 1.0, "step": 0.00001, "display": "number"})
+
         return {
             "required": {
                 "model": ("MODEL",),
@@ -152,9 +160,7 @@ class TeaCache_Patcher:
                 "evaluation_metric": (metrics,),
                 "rel_l1_thresh": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 10.0, "step": 0.001}),
             },
-            "optional": {
-                "coefficients_str": ("STRING", {"multiline": True, "default": json.dumps(cls.DEFAULT_COEFFS)}),
-            }
+            "optional": optional_inputs
         }
 
     RETURN_TYPES = ("MODEL", "STRING")
@@ -169,35 +175,42 @@ class TeaCache_Patcher:
         except Exception: pass
         return []
 
-    def _get_score(self, run, baseline_time, metric):
+    def _get_score(self, run, baseline_time, metric, max_lpips_thresh):
         time_saved = baseline_time - run.get('generation_time', 0)
         if time_saved <= 0: return 0
 
         if "LPIPS" in metric:
-            # 使用 LPIPS 作为评估
             lpips_dist = run.get("lpips_distance")
-            if lpips_dist is None or lpips_dist < 1e-6: return 0
+            if lpips_dist is None: return 0
+            
+            # 如果LPIPS距离超过了可接受的上限，直接给0分
+            # 如果 max_lpips_thresh <= 0，则禁用此功能
+            if max_lpips_thresh > 0 and lpips_dist > max_lpips_thresh:
+                return 0
+
+            if lpips_dist < 1e-6: return 0 # 避免除以0
             return time_saved / lpips_dist
         else:
-            # 默认使用 Hit Rate 作为评估
             inferences = run.get("total_inferences", 0)
             if inferences == 0: return 0
             hit_ratio = run.get("cache_hits", 0) / inferences
-            if hit_ratio < 1e-6: return 0
             return time_saved * hit_ratio
 
-    def _find_best_run(self, history, baseline_time, metric):
+    # ✨ 增加 max_lpips_thresh 参数
+    def _find_best_run(self, history, baseline_time, metric, max_lpips_thresh):
         eff_runs = [r for r in history if r.get("rel_l1_thresh") != 0]
         if not eff_runs: return None
         
         best_run, max_score = None, -1.0
         for run in eff_runs:
-            score = self._get_score(run, baseline_time, metric)
+            # ✨ 将阈值传递给打分函数
+            score = self._get_score(run, baseline_time, metric, max_lpips_thresh)
             if score > max_score:
                 max_score, best_run = score, run
         return best_run
 
-    def patch_model(self, model, mode, evaluation_metric, rel_l1_thresh, coefficients_str=None):
+    # ✨ 增加 max_lpips_thresh 参数
+    def patch_model(self, model, mode, evaluation_metric, rel_l1_thresh, coefficients_str=None, max_lpips_thresh=0.6):
         history = self._load_history(os.path.join(folder_paths.get_output_directory(), "teacache_analysis.json"))
         baseline_runs = [r for r in history if r.get("rel_l1_thresh") == 0]
         baseline_time = min([r['generation_time'] for r in baseline_runs]) if baseline_runs else None
@@ -205,7 +218,7 @@ class TeaCache_Patcher:
         coeffs_to_use = []
         if mode == "贝叶斯优化":
             if not SKOPT_AVAILABLE: raise Exception("'贝叶斯优化' 模式需要 'scikit-optimize' 库。")
-            best_efficient_run = self._find_best_run(history, baseline_time, evaluation_metric)
+            
             space = [Real(-1000, 1000), Real(-1000, 1000), Real(-1000, 1000), Real(-200, 200), Real(-50, 50)]
             optimizer = Optimizer(dimensions=space, random_state=int(time.time()), acq_func="gp_hedge")
             
@@ -215,12 +228,14 @@ class TeaCache_Patcher:
                     valid_history = [r for r in valid_history if r.get("lpips_distance") is not None]
 
                 if valid_history:
-                    y_iters = [-self._get_score(r, baseline_time, evaluation_metric) for r in valid_history]
+                    # ✨ 将阈值传递给打分函数
+                    y_iters = [-self._get_score(r, baseline_time, evaluation_metric, max_lpips_thresh) for r in valid_history]
                     optimizer.tell([r["coefficients"] for r in valid_history], y_iters)
             coeffs_to_use = optimizer.ask()
 
         elif mode == "自动微调":
-            best_efficient_run = self._find_best_run(history, baseline_time, evaluation_metric)
+            # ✨ 将阈值传递给辅助函数
+            best_efficient_run = self._find_best_run(history, baseline_time, evaluation_metric, max_lpips_thresh)
             base_coeffs = best_efficient_run["coefficients"] if best_efficient_run else self.DEFAULT_COEFFS
             idx_to_tweak = len(history) % len(base_coeffs)
             perturb_factor = np.random.uniform(0.8, 1.2)
@@ -230,7 +245,12 @@ class TeaCache_Patcher:
             coeffs_to_use = json.loads(coefficients_str) if coefficients_str else self.DEFAULT_COEFFS
         
         run_id = str(time.time_ns())
-        params_for_run = { "rel_l1_thresh": rel_l1_thresh, "coefficients_to_use": coeffs_to_use }
+        # ✨ 将阈值也保存到当次运行的参数中
+        params_for_run = { 
+            "rel_l1_thresh": rel_l1_thresh, 
+            "coefficients_to_use": coeffs_to_use,
+            "max_lpips_thresh": max_lpips_thresh
+        }
         STATE_MANAGER.register_run(run_id, params_for_run)
         
         new_model = model.clone()
@@ -295,7 +315,8 @@ class TeaCache_Result_Collector:
             "total_inferences": results.get('total_inferences', 0),
             "rel_l1_thresh": params.get('rel_l1_thresh'),
             "coefficients": params.get('coefficients_to_use'),
-            "lpips_distance": results.get('lpips_distance', None)
+            "lpips_distance": results.get('lpips_distance', None),
+            "max_lpips_thresh": params.get('max_lpips_thresh', None) # ✨ 保存阈值到JSON
         }
         
         full_path = os.path.join(folder_paths.get_output_directory(), analysis_file)
@@ -332,7 +353,6 @@ class LPIPS_Model_Loader:
             raise Exception("LPIPS库未安装。请执行 'pip install lpips'")
         if STATE_MANAGER.get_lpips_model() is None:
             print("正在加载LPIPS模型 (vgg)...")
-            # 使用 .cpu() 确保模型在CPU上，避免多余的GPU显存占用
             lpips_model = lpips.LPIPS(net='vgg').cpu()
             STATE_MANAGER.set_lpips_model(lpips_model)
             print("LPIPS模型加载完成。")
@@ -370,7 +390,6 @@ class TeaCache_LPIPS_Evaluator:
     CATEGORY = "utils/analysis"
     
     def _preprocess_image(self, image_tensor):
-        # 将 [0,1] 范围的图像张量转换为 [-1,1]
         return image_tensor * 2.0 - 1.0
 
     def evaluate(self, test_image, baseline_image, lpips_model, run_id):
@@ -381,14 +400,11 @@ class TeaCache_LPIPS_Evaluator:
         if not run_data:
             return (f"错误: 未找到ID为 {run_id} 的运行记录。",)
 
-        # 将测试图像从 [B, H, W, C] 转换为 [B, C, H, W]
         test_image_t = test_image.permute(0, 3, 1, 2)
         
-        # 预处理
         test_img_proc = self._preprocess_image(test_image_t)
         base_img_proc = self._preprocess_image(baseline_image)
         
-        # 计算LPIPS距离
         device = 'cpu'
         lpips_model.to(device)
         distance = lpips_model(test_img_proc.to(device), base_img_proc.to(device))
