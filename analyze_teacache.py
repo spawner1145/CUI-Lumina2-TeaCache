@@ -24,7 +24,6 @@ try:
           if 'lpips_distance' in df.columns:
               print("\n" + "-"*15 + f" 应用质量门槛 (LPIPS <= {max_lpips_thresh}) " + "-"*15)
               original_count = len(df)
-              # 筛选前，确保lpips_distance列存在且不为空值
               df = df.dropna(subset=['lpips_distance'])
               df = df[df['lpips_distance'] <= max_lpips_thresh]
               filtered_count = len(df)
@@ -37,13 +36,10 @@ try:
       
       df['hit_ratio'] = (df['cache_hits'] / df['total_inferences']).fillna(0)
   
-      # 寻找基准和计算节省时间
+      # 寻找基准和计算节省时间 (仅用于“速度-命中率”得分)
       baseline_runs = df[df['rel_l1_thresh'] == 0]
       if baseline_runs.empty:
-          print("警告：未找到基准运行 (rel_l1_thresh == 0)，无法计算'节省时间'和'综合得分'。")
-          if df.empty:
-               # 如果筛选后df为空，无法继续
-              return None, None
+          print("警告：未找到基准运行 (rel_l1_thresh == 0)，无法计算'节省时间'相关的得分。")
           baseline_time = df['generation_time'].max()
       else:
           baseline_time = baseline_runs['generation_time'].min()
@@ -53,12 +49,14 @@ try:
       df['time_saved'] = baseline_time - df['generation_time']
       df.loc[df['time_saved'] < 0, 'time_saved'] = 0
   
-      # 计算两种综合效率得分
       if 'lpips_distance' in df.columns:
-          df['score_lpips'] = (df['time_saved'] / df['lpips_distance'].replace(0, float('inf'))).fillna(0)
+          # 命中率 / LPIPS距离
+          df['score_lpips'] = (df['hit_ratio'] / df['lpips_distance'].replace(0, float('inf'))).fillna(0)
       else:
+          print("警告: 数据中不包含 'lpips_distance'，跳过LPIPS相关分析。")
           df['score_lpips'] = 0
   
+      # “速度-命中率”的得分公式保持不变
       df['score_hit_ratio'] = df['time_saved'] * df['hit_ratio']
   
       # 找出各项最佳参数
@@ -71,11 +69,11 @@ try:
       best_indices = {
           "最快生成速度": cached_runs['generation_time'].idxmin(),
           "最高缓存命中率": cached_runs['hit_ratio'].idxmax(),
-          "最佳综合效率 (命中率)": cached_runs['score_hit_ratio'].idxmax(),
+          "最佳速度-命中率综合效率": cached_runs['score_hit_ratio'].idxmax(), # 名字更新
       }
       if df['score_lpips'].sum() > 0 and 'lpips_distance' in cached_runs.columns and cached_runs['lpips_distance'].notna().any():
           best_indices["最低LPIPS (最佳画质)"] = cached_runs['lpips_distance'].idxmin()
-          best_indices["最佳综合效率 (LPIPS)"] = cached_runs['score_lpips'].idxmax()
+          best_indices["最佳质量-命中率综合效率 (LPIPS)"] = cached_runs['score_lpips'].idxmax() # 名字更新
   
       for name, idx in best_indices.items():
           best_run = df.loc[idx]
@@ -85,8 +83,8 @@ try:
                   "生成时间": f"{best_run['generation_time']:.2f}s",
                   "命中率": f"{best_run['hit_ratio']:.2%}",
                   "LPIPS": f"{best_run.get('lpips_distance', 'N/A'):.4f}" if pd.notna(best_run.get('lpips_distance')) else "N/A",
-                  "综合得分(命中率)": f"{best_run['score_hit_ratio']:.2f}",
-                  "综合得分(LPIPS)": f"{best_run['score_lpips']:.2f}",
+                  "速度-命中率得分": f"{best_run['score_hit_ratio']:.2f}",
+                  "质量-命中率得分(LPIPS)": f"{best_run['score_lpips']:.4f}", # 增加小数位精度
               }
           }
           
@@ -98,7 +96,7 @@ try:
           
       print("\n" + "="*25 + " 分析结果 " + "="*25)
       for name, data in results.items():
-          print(f"\n--- {name}")
+          print(f"\n--- {name} ---")
           print(f"  🏆 最佳Coefficients: {data['coefficients']}")
           print("     相关指标:")
           for key, val in data['value'].items():
@@ -122,7 +120,7 @@ try:
           fig1, ax1 = plt.subplots(figsize=(12, 8))
           
           scatter1 = ax1.scatter(plot_df['generation_time'], plot_df['lpips_distance'], c=plot_df['score_lpips'], cmap='viridis', alpha=0.7, s=50)
-          fig1.colorbar(scatter1, label='综合效率得分 (LPIPS Score)')
+          fig1.colorbar(scatter1, label='质量-命中率综合得分 (Hit Ratio / LPIPS)')
           
           title = '生成速度 vs 图像质量 (LPIPS)'
           if max_lpips_thresh:
@@ -134,7 +132,7 @@ try:
           
           best_lpips_score_idx = plot_df['score_lpips'].idxmax()
           best_point = plot_df.loc[best_lpips_score_idx]
-          ax1.scatter(best_point['generation_time'], best_point['lpips_distance'], color='red', s=150, ec='black', marker='*', label='最佳LPIPS综合效率')
+          ax1.scatter(best_point['generation_time'], best_point['lpips_distance'], color='red', s=150, ec='black', marker='*', label='最佳质量-命中率综合效率点')
           ax1.text(best_point['generation_time'], best_point['lpips_distance'], '  最佳综合点', color='red', ha='left')
           ax1.legend()
           ax1.grid(True)
@@ -142,14 +140,14 @@ try:
       # 图表2: 时间 vs 缓存命中率
       fig2, ax2 = plt.subplots(figsize=(12, 8))
       scatter2 = ax2.scatter(plot_df['generation_time'], plot_df['hit_ratio'], c=plot_df['score_hit_ratio'], cmap='plasma', alpha=0.7, s=50)
-      fig2.colorbar(scatter2, label='综合效率得分 (Hit Ratio Score)')
+      fig2.colorbar(scatter2, label='速度-命中率综合得分 (Time Saved * Hit Ratio)')
       ax2.set_title('生成速度 vs 缓存命中率', fontsize=16)
       ax2.set_xlabel('生成时间 (秒) - 越低越好', fontsize=12)
       ax2.set_ylabel('缓存命中率 - 越高越好', fontsize=12)
       ax2.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: '{:.0%}'.format(y)))
       best_hr_score_idx = plot_df['score_hit_ratio'].idxmax()
       best_point_hr = plot_df.loc[best_hr_score_idx]
-      ax2.scatter(best_point_hr['generation_time'], best_point_hr['hit_ratio'], color='blue', s=150, ec='black', marker='*', label='最佳命中率综合效率')
+      ax2.scatter(best_point_hr['generation_time'], best_point_hr['hit_ratio'], color='blue', s=150, ec='black', marker='*', label='最佳速度-命中率综合效率点')
       ax2.text(best_point_hr['generation_time'], best_point_hr['hit_ratio'], '  最佳综合点', color='blue', ha='left')
       ax2.legend()
       ax2.grid(True)
