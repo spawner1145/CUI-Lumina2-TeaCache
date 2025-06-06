@@ -12,9 +12,9 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "TeaCache_Lumina2": "Lumina2 TeaCahe",
-    "TeaCache_Patcher": "TeaCache Patcher 🍵",
-    "TeaCache_Result_Collector": "TeaCache Result Collector 📊",
-    "LPIPS_Model_Loader": "LPIPS Model Loader 🧠",
-    "Store_Baseline_Image": "Store Baseline Image 🖼️",
-    "TeaCache_LPIPS_Evaluator": "TeaCache LPIPS Evaluator 🧐",
+    "TeaCache_Patcher": "TeaCache Patcher",
+    "TeaCache_Result_Collector": "TeaCache Result Collector",
+    "LPIPS_Model_Loader": "LPIPS Model Loader",
+    "Store_Baseline_Image": "Store Baseline Image",
+    "TeaCache_LPIPS_Evaluator": "TeaCache LPIPS Evaluator",
 }
