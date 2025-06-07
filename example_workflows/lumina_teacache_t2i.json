@@ -68,6 +68,42 @@
       "bgcolor": "#653"
     },
     {
+      "id": 24,
+      "type": "WeiLinComfyUIPromptAllInOneGreat",
+      "pos": [
+        1497.17822265625,
+        -46.018375396728516
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "label": "正向 STRING",
+          "name": "正向 STRING",
+          "type": "STRING",
+          "links": [
+            37
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "weilin-comfyui-prompt-all-in-one",
+        "ver": "3.6.9",
+        "Node name for S&R": "WeiLinComfyUIPromptAllInOneGreat",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>,\ntyomimas,shiratama_(shiratamaco),\ngood hands,best quality,masterpiece,artbook,huge filesize,detailed eyes,\n1girl,solo,hatsune miku,frilled_dress,layered_dress,white_bodystocking,frog_hair_ornament,necklace,rimless_eyewear,library,in spring,day,incredibly absurdres,wallpaper,blurry_foreground,foreshortening,book,open_book,table,",
+        ""
+      ]
+    },
+    {
       "id": 6,
       "type": "CLIPTextEncode",
       "pos": [
@@ -79,7 +115,7 @@
         177.11770629882812
       ],
       "flags": {},
-      "order": 9,
+      "order": 10,
       "mode": 0,
       "inputs": [
         {
@@ -135,7 +171,7 @@
         197.89625549316406
       ],
       "flags": {},
-      "order": 2,
+      "order": 3,
       "mode": 0,
       "inputs": [],
       "outputs": [],
@@ -160,7 +196,7 @@
         58
       ],
       "flags": {},
-      "order": 7,
+      "order": 8,
       "mode": 0,
       "inputs": [
         {
@@ -192,239 +228,11 @@
       ]
     },
     {
-      "id": 25,
-      "type": "CLIPLoader",
-      "pos": [
-        -361.6854553222656,
-        296.48211669921875
-      ],
-      "size": [
-        270,
-        106
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "label": "CLIP",
-          "name": "CLIP",
-          "type": "CLIP",
-          "links": [
-            38
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.35",
-        "Node name for S&R": "CLIPLoader",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "gemma_2_2b_fp16.safetensors",
-        "lumina2",
-        "default"
-      ]
-    },
-    {
-      "id": 9,
-      "type": "SaveImage",
-      "pos": [
-        1454.93896484375,
-        190.9700164794922
-      ],
-      "size": [
-        510.16339111328125,
-        600.8326416015625
-      ],
-      "flags": {},
-      "order": 14,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "图像",
-          "name": "images",
-          "type": "IMAGE",
-          "link": 16
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.35",
-        "Node name for S&R": "SaveImage",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "ComfyUI"
-      ]
-    },
-    {
-      "id": 7,
-      "type": "CLIPTextEncode",
-      "pos": [
-        431.4041748046875,
-        376.0526123046875
-      ],
-      "size": [
-        425.27801513671875,
-        180.6060791015625
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "CLIP",
-          "name": "clip",
-          "type": "CLIP",
-          "link": 34
-        }
-      ],
-      "outputs": [
-        {
-          "label": "条件",
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "slot_index": 0,
-          "links": [
-            6
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.35",
-        "Node name for S&R": "CLIPTextEncode",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "nsfw,worst quality,old,early,low quality,lowres,signature, username,logo,bad hands,mutated hands,mammal,anthro,furry,ambiguous form,feral,semi-anthro,txt,e621,mammal,anthro,furry,ambiguous_form,feral,semi-anthro"
-      ],
-      "color": "#322",
-      "bgcolor": "#533"
-    },
-    {
-      "id": 11,
-      "type": "ModelSamplingAuraFlow",
-      "pos": [
-        422.6557922363281,
-        -7.0360589027404785
-      ],
-      "size": [
-        315,
-        58
-      ],
-      "flags": {},
-      "order": 11,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "模型",
-          "name": "model",
-          "type": "MODEL",
-          "link": 48
-        }
-      ],
-      "outputs": [
-        {
-          "label": "模型",
-          "name": "MODEL",
-          "type": "MODEL",
-          "slot_index": 0,
-          "links": [
-            45
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.35",
-        "Node name for S&R": "ModelSamplingAuraFlow",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        6.000000000000001
-      ]
-    },
-    {
-      "id": 26,
-      "type": "UNETLoader",
-      "pos": [
-        -349.7476806640625,
-        126.8427963256836
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "label": "模型",
-          "name": "MODEL",
-          "type": "MODEL",
-          "links": [
-            47
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.35",
-        "Node name for S&R": "UNETLoader",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "consolidated.00-of-01.pth",
-        "default"
-      ]
-    },
-    {
-      "id": 20,
-      "type": "VAELoader",
-      "pos": [
-        -352.98162841796875,
-        560.4020385742188
-      ],
-      "size": [
-        270,
-        58
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "VAE",
-          "type": "VAE",
-          "links": [
-            29
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.35",
-        "Node name for S&R": "VAELoader",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "ae.safetensors"
-      ]
-    },
-    {
       "id": 8,
       "type": "VAEDecode",
       "pos": [
-        1225.6700439453125,
-        166.7769317626953
+        1220.610595703125,
+        163.74131774902344
       ],
       "size": [
         210,
@@ -467,11 +275,99 @@
       "widgets_values": []
     },
     {
+      "id": 7,
+      "type": "CLIPTextEncode",
+      "pos": [
+        431.4041748046875,
+        376.0526123046875
+      ],
+      "size": [
+        425.27801513671875,
+        180.6060791015625
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "CLIP",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 34
+        }
+      ],
+      "outputs": [
+        {
+          "label": "条件",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            6
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.35",
+        "Node name for S&R": "CLIPTextEncode",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "nsfw,worst quality,old,early,low quality,lowres,signature, username,logo,bad hands,mutated hands,mammal,anthro,furry,ambiguous form,feral,semi-anthro,txt,e621,mammal,anthro,furry,ambiguous_form,feral,semi-anthro"
+      ],
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 11,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [
+        497.47991943359375,
+        32.946205139160156
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "模型",
+          "name": "model",
+          "type": "MODEL",
+          "link": 48
+        }
+      ],
+      "outputs": [
+        {
+          "label": "模型",
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            45
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.35",
+        "Node name for S&R": "ModelSamplingAuraFlow",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        6.000000000000001
+      ]
+    },
+    {
       "id": 3,
       "type": "KSampler",
       "pos": [
-        901.89697265625,
-        186.51414489746094
+        888.7598266601562,
+        185.37181091308594
       ],
       "size": [
         315,
@@ -534,18 +430,158 @@
       ]
     },
     {
+      "id": 26,
+      "type": "UNETLoader",
+      "pos": [
+        -349.7476806640625,
+        126.8427963256836
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "label": "模型",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            47
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.35",
+        "Node name for S&R": "UNETLoader",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "consolidated.00-of-01.pth",
+        "default"
+      ]
+    },
+    {
+      "id": 25,
+      "type": "CLIPLoader",
+      "pos": [
+        -361.6854553222656,
+        296.48211669921875
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "label": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            38
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.35",
+        "Node name for S&R": "CLIPLoader",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "gemma_2_2b_fp16.safetensors",
+        "lumina2",
+        "default"
+      ]
+    },
+    {
+      "id": 20,
+      "type": "VAELoader",
+      "pos": [
+        -352.98162841796875,
+        560.4020385742188
+      ],
+      "size": [
+        270,
+        58
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.35",
+        "Node name for S&R": "VAELoader",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "ae.safetensors"
+      ]
+    },
+    {
+      "id": 9,
+      "type": "SaveImage",
+      "pos": [
+        1450.2657470703125,
+        190.9700164794922
+      ],
+      "size": [
+        510.16339111328125,
+        600.8326416015625
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "图像",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 16
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.35",
+        "Node name for S&R": "SaveImage",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "ComfyUI"
+      ]
+    },
+    {
       "id": 29,
       "type": "TeaCache_Lumina2",
       "pos": [
-        -34.28871536254883,
-        -114.49031829833984
+        -32.87220764160156,
+        -86.36162567138672
       ],
       "size": [
         400,
         200
       ],
       "flags": {},
-      "order": 8,
+      "order": 7,
       "mode": 0,
       "inputs": [
         {
@@ -564,51 +600,16 @@
         }
       ],
       "properties": {
-        "cnr_id": "cui-lumina2-teacache",
+        "aux_id": "spawner1145/CUI-Lumina2-TeaCache",
         "ver": "c44cf0b54fa514a8a1dcfa6e238a62f8205cd970",
-        "Node name for S&R": "TeaCache_Lumina2"
+        "Node name for S&R": "TeaCache_Lumina2",
+        "cnr_id": "cui-lumina2-teacache"
       },
       "widgets_values": [
-        0.10000000000000002,
+        0.30000000000000004,
         0,
         1,
-        "[393.76566581, -603.50993606, 209.10239044, -23.00726601, 0.86377344]"
-      ]
-    },
-    {
-      "id": 24,
-      "type": "WeiLinComfyUIPromptAllInOneGreat",
-      "pos": [
-        1480.591552734375,
-        -76.42772674560547
-      ],
-      "size": [
-        400,
-        200
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "label": "正向 STRING",
-          "name": "正向 STRING",
-          "type": "STRING",
-          "links": [
-            37
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "weilin-comfyui-prompt-all-in-one",
-        "ver": "3.6.9",
-        "Node name for S&R": "WeiLinComfyUIPromptAllInOneGreat",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        "You are an assistant designed to generate anime images based on textual prompts. <Prompt Start>,\ntyomimas,shiratama_(shiratamaco),\ngood hands,best quality,masterpiece,artbook,huge filesize,detailed eyes,\n1girl,solo,hatsune miku,frilled_dress,layered_dress,white_bodystocking,frog_hair_ornament,necklace,rimless_eyewear,library,in spring,day,incredibly absurdres,wallpaper,blurry_foreground,foreshortening,book,open_book,table,",
-        ""
+        "[225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]"
       ]
     }
   ],
@@ -722,10 +723,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.7247295000000058,
+      "scale": 0.7247295000000076,
       "offset": [
-        242.02400941796884,
-        244.71245649167943
+        777.8293087510966,
+        172.64924053954488
       ]
     },
     "frontendVersion": "1.21.7",
