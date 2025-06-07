@@ -5,14 +5,10 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 def analyze_runs(data, max_lpips_thresh=None):
-    """
-    对加载的JSON数据进行处理和分析。
-    """
     if not data:
         print("错误：JSON文件中没有数据。")
         return None, None
 
-    # 数据预处理
     df = pd.DataFrame(data)
     df = df.dropna(subset=['coefficients'])
     if df.empty:
@@ -83,7 +79,7 @@ def analyze_runs(data, max_lpips_thresh=None):
                 "命中率": f"{best_run['hit_ratio']:.2%}",
                 "LPIPS": f"{best_run.get('lpips_distance', 'N/A'):.4f}" if pd.notna(best_run.get('lpips_distance')) else "N/A",
                 "速度-命中率得分": f"{best_run['score_hit_ratio']:.2f}",
-                "质量-命中率得分(LPIPS)": f"{best_run['score_lpips']:.4f}", # 增加小数位精度
+                "质量-命中率得分(LPIPS)": f"{best_run['score_lpips']:.4f}",
             }
         }
         
@@ -96,7 +92,7 @@ def print_results(results):
     print("\n" + "="*25 + " 分析结果 " + "="*25)
     for name, data in results.items():
         print(f"\n--- {name} ---")
-        print(f"  🏆 最佳Coefficients: {data['coefficients']}")
+        print(f"  最佳Coefficients: {data['coefficients']}")
         print("     相关指标:")
         for key, val in data['value'].items():
             print(f"       - {key}: {val}")
