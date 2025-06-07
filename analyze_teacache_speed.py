@@ -72,7 +72,7 @@ def print_fastest_results(results, max_lpips=None):
     
     for rank, data in results.items():
         print(f"{rank}:")
-        print(f"  🏆 最佳Coefficients: {data['coefficients']}")
+        print(f"  最佳Coefficients: {data['coefficients']}")
         print("     相关指标:")
         for key, val in data['value'].items():
             print(f"       - {key}: {val}")
