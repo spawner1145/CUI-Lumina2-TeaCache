@@ -165,6 +165,7 @@ class TeaCache_Patcher:
     RETURN_NAMES = ("MODEL", "run_id")
     FUNCTION = "patch_model"
     CATEGORY = "utils/analysis"
+    EXPERIMENTAL = True
     
     def _load_history(self, file_path):
         try:
@@ -277,6 +278,7 @@ class TeaCache_Result_Collector:
     RETURN_NAMES = ("LATENT", "status")
     FUNCTION = "collect_and_save"
     CATEGORY = "utils/analysis"
+    EXPERIMENTAL = True
     def _load_history(self, file_path):
         try:
             if os.path.exists(file_path):
@@ -318,6 +320,7 @@ class LPIPS_Model_Loader:
     RETURN_TYPES = ("LPIPS_MODEL",)
     FUNCTION = "load_model"
     CATEGORY = "utils/analysis"
+    EXPERIMENTAL = True
     def load_model(self):
         if not LPIPS_AVAILABLE: raise Exception("LPIPS库未安装。请执行 'pip install lpips'")
         if STATE_MANAGER.get_lpips_model() is None:
@@ -334,6 +337,7 @@ class Store_Baseline_Image:
     RETURN_TYPES = ("BASELINE_IMG",)
     FUNCTION = "store_image"
     CATEGORY = "utils/analysis"
+    EXPERIMENTAL = True
     def store_image(self, image):
         baseline_tensor = image.permute(0, 3, 1, 2).contiguous()
         STATE_MANAGER.set_baseline_image(baseline_tensor)
@@ -347,6 +351,7 @@ class TeaCache_LPIPS_Evaluator:
     RETURN_NAMES = ("status",)
     FUNCTION = "evaluate"
     CATEGORY = "utils/analysis"
+    EXPERIMENTAL = True
     def _preprocess_image(self, image_tensor): return image_tensor * 2.0 - 1.0
     def evaluate(self, test_image, baseline_image, lpips_model, run_id):
         if baseline_image is None: return ("错误: 未提供基准图像 (Baseline Image)。",)
