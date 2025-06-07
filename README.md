@@ -23,7 +23,7 @@ git clone https://github.com/spawner1145/CUI-Lumina2-TeaCache.git
 ![image](https://github.com/user-attachments/assets/fae7bebe-3af1-48f4-9a22-432bb6b9b4fa)
 1. Connect the `TeaCache` node between the `UNet Loader` and `KSampler` in your workflow.
 2. Set the `rel_l1_thresh` parameter to a value greater than 0.
-3. to work on low steps, you can set the value below to `[393.76566581, -603.50993606, 209.10239044, -23.00726601, 0.86377344]` and a bit large `rel_l1_thresh` for more speed, and for higher steps, you can set the value below to `[225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]` and a `rel_l1_thresh`<1.1 to get better quality and more speed.
+3. to work on low steps, you can set the value below to `[393.76566581, -603.50993606, 209.10239044, -23.00726601, 0.86377344]` and a small `rel_l1_thresh` like 0.3 for higher speed or set the value below to `[225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]` and a very large `rel_l1_thresh` like 5 for higher speed and better quality, and for higher steps, you can set the value below to `[225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]` and a `rel_l1_thresh`<1.1 to get better quality and higher speed.
 
 **Note:** 
 - Higher `rel_l1_thresh` values will improve generation efficiency (manifested as shorter generation times), at the cost of reduced image quality.
