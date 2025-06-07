@@ -4,7 +4,8 @@ from comfy.ldm.common_dit import pad_to_patch_size  # noqa
 from unittest.mock import patch
 import re
 
-DEFAULT_COEFFICIENTS = [393.76566581, -603.50993606, 209.10239044, -23.00726601, 0.86377344]
+#DEFAULT_COEFFICIENTS = [393.76566581, -603.50993606, 209.10239044, -23.00726601, 0.86377344]
+DEFAULT_COEFFICIENTS = [225.7042019806413, -608.8453716535591, 304.1869942338369, 124.21267720116742, -1.4089066892956552]
 
 # referenced from https://github.com/spawner1145/TeaCache/blob/main/TeaCache4Lumina2/teacache_lumina2.py
 # firstly transplanted by @fexli https://github.com/fexli
