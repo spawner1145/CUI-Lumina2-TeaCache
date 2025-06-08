@@ -1,5 +1,5 @@
 # cui-teacache-lu2
-## referenced from https://github.com/spawner1145/TeaCache/blob/main/TeaCache4Lumina2/teacache_lumina2.py
+## referenced from https://github.com/spawner1145/TeaCache/tree/main/TeaCache4Lumina2
 ## firstly transplanted by [@fexli](https://github.com/fexli)
 ## retransplanted by @spawner
 ## Installation
