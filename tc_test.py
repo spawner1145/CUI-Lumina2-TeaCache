@@ -156,7 +156,7 @@ class TeaCache_Patcher:
                 "model": ("MODEL",),
                 "mode": (modes,),
                 "evaluation_metric": (metrics,),
-                "rel_l1_thresh": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 10.0, "step": 0.001}),
+                "rel_l1_thresh": ("FLOAT", {"default": 0.3, "min": 0.0, "step": 0.001}),
             },
             "optional": optional_inputs
         }
