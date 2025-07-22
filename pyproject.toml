@@ -1,8 +1,9 @@
 [project]
 name = "cui-lumina2-teacache"
 description = "comfy extension for lumina2 TeaCache"
-version = "1.0.6"
+version = "1.0.7"
 license = {file = "LICENSE"}
+dependencies = ["scikit-optimize", "lpips"]
 
 [project.urls]
 Repository = "https://github.com/spawner1145/CUI-Lumina2-TeaCache"
