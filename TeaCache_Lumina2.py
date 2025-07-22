@@ -173,7 +173,7 @@ class TeaCache_Lumina2:
         return {
             "required": {
                 "model": ("MODEL",),
-                "rel_l1_thresh": ("FLOAT", {"default": 6.0, "min": 0.0, "max": 20.0, "step": 0.001}),
+                "rel_l1_thresh": ("FLOAT", {"default": 6.0, "min": 0.0, "step": 0.001}),
                 "start_percent": ("FLOAT", {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.01,
                                             "tooltip": "The start percentage of the steps that will apply TeaCache. / TeaCache开始应用的步数百分比。"}),
                 "end_percent": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01,
