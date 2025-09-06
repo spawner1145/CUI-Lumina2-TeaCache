@@ -1,7 +1,7 @@
 [project]
 name = "cui-lumina2-teacache"
 description = "comfy extension for lumina2 TeaCache"
-version = "1.0.7"
+version = "1.0.8"
 license = {file = "LICENSE"}
 dependencies = ["scikit-optimize", "lpips"]
 
