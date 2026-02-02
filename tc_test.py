@@ -58,10 +58,16 @@ STATE_MANAGER = TeaCacheStateManager()
 def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs):
     transformer_options = kwargs.get('transformer_options', {})
     run_id = transformer_options.get('teacache_run_id')
-    if not run_id: return self.forward_original(x, timesteps, context, num_tokens, **kwargs)
+    if not run_id:
+        if hasattr(self, "_forward_original"):
+            return self._forward_original(x, timesteps, context, num_tokens, **kwargs)
+        return self.forward_original(x, timesteps, context, num_tokens, **kwargs)
     
     run_data = STATE_MANAGER.get_run_data(run_id)
-    if not run_data: return self.forward_original(x, timesteps, context, num_tokens, **kwargs)
+    if not run_data:
+        if hasattr(self, "_forward_original"):
+            return self._forward_original(x, timesteps, context, num_tokens, **kwargs)
+        return self.forward_original(x, timesteps, context, num_tokens, **kwargs)
 
     params = run_data['params']
     
@@ -69,6 +75,9 @@ def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs)
         run_data["num_steps"] = transformer_options.get("num_steps")
 
     cap_feats, cap_mask = context, kwargs.get('attention_mask')
+    ref_latents = kwargs.get("ref_latents", [])
+    ref_contexts = kwargs.get("ref_contexts", [])
+    siglip_feats = kwargs.get("siglip_feats", [])
     bs, c_channels, h_img, w_img = x.shape
     if hasattr(self, 'pad_to_patch_size'): x = self.pad_to_patch_size(x, (self.patch_size, self.patch_size))
     else: 
@@ -76,10 +85,39 @@ def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs)
         pw = (self.patch_size - w_img % self.patch_size) % self.patch_size
         x = torch.nn.functional.pad(x, (0, pw, 0, ph))
     t = (1.0 - timesteps).to(dtype=x.dtype)
-    t_emb = self.t_embedder(t, dtype=x.dtype)
+    t_in = t * getattr(self, "time_scale", 1.0)
+    t_emb = self.t_embedder(t_in, dtype=x.dtype)
     adaln_input = t_emb
-    if cap_feats is not None: cap_feats = self.cap_embedder(cap_feats)
-    x, mask, img_size, cap_size, freqs_cis = self.patchify_and_embed(x, cap_feats, cap_mask, t_emb, num_tokens)
+    if getattr(self, "clip_text_pooled_proj", None) is not None:
+        pooled = kwargs.get("clip_text_pooled", None)
+        if pooled is not None:
+            pooled = self.clip_text_pooled_proj(pooled)
+        else:
+            clip_text_dim = getattr(self, "clip_text_dim", None)
+            if clip_text_dim is None:
+                clip_text_dim = t_emb.shape[-1]
+            pooled = torch.zeros((x.shape[0], clip_text_dim), device=x.device, dtype=x.dtype)
+        adaln_input = self.time_text_embed(torch.cat((t_emb, pooled), dim=-1))
+    try:
+        patchify_out = self.patchify_and_embed(
+            x,
+            cap_feats,
+            cap_mask,
+            adaln_input,
+            num_tokens,
+            ref_latents=ref_latents,
+            ref_contexts=ref_contexts,
+            siglip_feats=siglip_feats,
+            transformer_options=transformer_options,
+        )
+    except TypeError:
+        patchify_out = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens)
+
+    if len(patchify_out) == 6:
+        x, mask, img_size, cap_size, freqs_cis, timestep_zero_index = patchify_out
+    else:
+        x, mask, img_size, cap_size, freqs_cis = patchify_out
+        timestep_zero_index = None
     freqs_cis = freqs_cis.to(x.device)
     max_seq_len = x.shape[1]
     
@@ -93,7 +131,13 @@ def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs)
         run_data.setdefault('cache', {})
         current_cache = run_data['cache'].setdefault(max_seq_len, {"accumulated_rel_l1_distance": 0.0, "previous_modulated_input": None, "previous_residual": None})
         if current_cache.get("previous_modulated_input") is not None:
-            modulated_inp = self.layers[0].adaLN_modulation(adaln_input.clone())[0]
+            mod_result = self.layers[0].adaLN_modulation(adaln_input.clone())
+            if isinstance(mod_result, (list, tuple)) and len(mod_result) > 0:
+                modulated_inp = mod_result[0]
+            elif torch.is_tensor(mod_result):
+                modulated_inp = mod_result
+            else:
+                raise ValueError("adaLN_modulation returned unexpected type or empty list/tuple")
             coefficients = params.get("coefficients_to_use", [])
             rescale_func = np.poly1d(coefficients)
             prev_mod_input = current_cache["previous_modulated_input"]
@@ -114,13 +158,23 @@ def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs)
             run_data['results']["total_inferences"] += 1
         original_x = x.clone()
         processed_x = x
-        for layer in self.layers: processed_x = layer(processed_x, mask, freqs_cis, adaln_input)
+        for layer in self.layers:
+            try:
+                processed_x = layer(processed_x, mask, freqs_cis, adaln_input, timestep_zero_index=timestep_zero_index, transformer_options=transformer_options)
+            except TypeError:
+                processed_x = layer(processed_x, mask, freqs_cis, adaln_input)
         run_data.setdefault('cache', {})
         current_cache = run_data['cache'].setdefault(max_seq_len, {})
         current_cache["previous_residual"] = processed_x - original_x
         current_cache["accumulated_rel_l1_distance"] = 0.0
         if current_cache.get("previous_modulated_input") is None:
-            current_cache["previous_modulated_input"] = self.layers[0].adaLN_modulation(adaln_input.clone())[0]
+            mod_result = self.layers[0].adaLN_modulation(adaln_input.clone())
+            if isinstance(mod_result, (list, tuple)) and len(mod_result) > 0:
+                current_cache["previous_modulated_input"] = mod_result[0]
+            elif torch.is_tensor(mod_result):
+                current_cache["previous_modulated_input"] = mod_result
+            else:
+                raise ValueError("adaLN_modulation returned unexpected type or empty list/tuple")
     else:
         current_cache = run_data['cache'].get(max_seq_len, {})
         processed_x = x + current_cache.get("previous_residual", 0)
@@ -131,7 +185,10 @@ def teacache_forward_analysis(self, x, timesteps, context, num_tokens, **kwargs)
     if num_steps_in_state is not None and max_seq_len != run_data.get('uncond_seq_len'):
         run_data['cnt'] += 1
 
-    output = self.final_layer(processed_x, adaln_input)
+    try:
+        output = self.final_layer(processed_x, adaln_input, timestep_zero_index=timestep_zero_index)
+    except TypeError:
+        output = self.final_layer(processed_x, adaln_input)
     if hasattr(self, 'unpatchify'): output = self.unpatchify(output, img_size, cap_size, return_tensor=True)[:, :, :h_img, :w_img]
     else: raise NotImplementedError("Model does not have an 'unpatchify' method.")
     return -output
@@ -253,9 +310,16 @@ class TeaCache_Patcher:
         new_model = model.clone()
         diffusion_model = new_model.get_model_object("diffusion_model")
         
-        if not hasattr(diffusion_model, 'forward_original'):
-            diffusion_model.forward_original = diffusion_model.forward
-        diffusion_model.forward = teacache_forward_analysis.__get__(diffusion_model, diffusion_model.__class__)
+        if hasattr(diffusion_model, "_forward"):
+            if not hasattr(diffusion_model, "_forward_original"):
+                diffusion_model._forward_original = diffusion_model._forward
+            diffusion_model._forward = teacache_forward_analysis.__get__(diffusion_model, diffusion_model.__class__)
+        else:
+            if not hasattr(diffusion_model, 'forward_original'):
+                diffusion_model.forward_original = diffusion_model.forward
+            diffusion_model.forward = teacache_forward_analysis.__get__(diffusion_model, diffusion_model.__class__)
+
+        old_wrapper = new_model.model_options.get("model_function_wrapper")
 
         def unet_wrapper_function(model_function, kwargs):
             c_dict = kwargs.get("c", {})
@@ -263,6 +327,8 @@ class TeaCache_Patcher:
             c_dict["transformer_options"]["teacache_run_id"] = run_id
             if "sample_sigmas" in c_dict["transformer_options"]:
                 c_dict["transformer_options"]["num_steps"] = len(c_dict["transformer_options"]["sample_sigmas"])
+            if old_wrapper:
+                return old_wrapper(model_function, {"input": kwargs["input"], "timestep": kwargs["timestep"], "c": c_dict, "cond_or_uncond": kwargs.get("cond_or_uncond")})
             return model_function(kwargs["input"], kwargs["timestep"], **c_dict)
 
         new_model.set_model_unet_function_wrapper(unet_wrapper_function)
