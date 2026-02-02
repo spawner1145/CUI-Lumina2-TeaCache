@@ -28,17 +28,49 @@ def teacache_forward_working(
 
     cap_feats = context
     cap_mask = attention_mask
+    ref_latents = kwargs.get("ref_latents", [])
+    ref_contexts = kwargs.get("ref_contexts", [])
+    siglip_feats = kwargs.get("siglip_feats", [])
+    transformer_options = kwargs.get("transformer_options", transformer_options) or {}
     bs, c_channels, h_img, w_img = x.shape
     x = pad_to_patch_size(x, (self.patch_size, self.patch_size))
     t = (1.0 - timesteps).to(dtype=x.dtype)
+    t_in = t * getattr(self, "time_scale", 1.0)
 
-    t_emb = self.t_embedder(t, dtype=x.dtype)
+    t_emb = self.t_embedder(t_in, dtype=x.dtype)
     adaln_input = t_emb
 
-    if cap_feats is not None:
-        cap_feats = self.cap_embedder(cap_feats)
+    if getattr(self, "clip_text_pooled_proj", None) is not None:
+        pooled = kwargs.get("clip_text_pooled", None)
+        if pooled is not None:
+            pooled = self.clip_text_pooled_proj(pooled)
+        else:
+            clip_text_dim = getattr(self, "clip_text_dim", None)
+            if clip_text_dim is None:
+                clip_text_dim = t_emb.shape[-1]
+            pooled = torch.zeros((x.shape[0], clip_text_dim), device=x.device, dtype=x.dtype)
+        adaln_input = self.time_text_embed(torch.cat((t_emb, pooled), dim=-1))
 
-    x, mask, img_size, cap_size, freqs_cis = self.patchify_and_embed(x, cap_feats, cap_mask, t_emb, num_tokens)
+    try:
+        patchify_out = self.patchify_and_embed(
+            x,
+            cap_feats,
+            cap_mask,
+            adaln_input,
+            num_tokens,
+            ref_latents=ref_latents,
+            ref_contexts=ref_contexts,
+            siglip_feats=siglip_feats,
+            transformer_options=transformer_options,
+        )
+    except TypeError:
+        patchify_out = self.patchify_and_embed(x, cap_feats, cap_mask, adaln_input, num_tokens)
+
+    if len(patchify_out) == 6:
+        x, mask, img_size, cap_size, freqs_cis, timestep_zero_index = patchify_out
+    else:
+        x, mask, img_size, cap_size, freqs_cis = patchify_out
+        timestep_zero_index = None
     freqs_cis = freqs_cis.to(x.device)
     max_seq_len = x.shape[1]
     should_calc = True
@@ -153,14 +185,27 @@ def teacache_forward_working(
         original_x = x.clone()
         current_x_for_processing = x
         for layer in self.layers:
-            current_x_for_processing = layer(current_x_for_processing, mask, freqs_cis, adaln_input)
+            try:
+                current_x_for_processing = layer(
+                    current_x_for_processing,
+                    mask,
+                    freqs_cis,
+                    adaln_input,
+                    timestep_zero_index=timestep_zero_index,
+                    transformer_options=transformer_options,
+                )
+            except TypeError:
+                current_x_for_processing = layer(current_x_for_processing, mask, freqs_cis, adaln_input)
 
         if enable_teacache and current_cache:
             current_cache["previous_residual"] = current_x_for_processing - original_x
             current_cache["accumulated_rel_l1_distance"] = 0.0
         processed_x = current_x_for_processing
 
-    output = self.final_layer(processed_x, adaln_input)
+    try:
+        output = self.final_layer(processed_x, adaln_input, timestep_zero_index=timestep_zero_index)
+    except TypeError:
+        output = self.final_layer(processed_x, adaln_input)
     output = self.unpatchify(output, img_size, cap_size, return_tensor=True)[:, :, :h_img, :w_img]
 
     return -output
@@ -233,10 +278,18 @@ class TeaCache_Lumina2:
         if hasattr(diffusion_model, 'teacache_state'):
             delattr(diffusion_model, 'teacache_state')
 
-        context_patch_manager = patch.multiple(
-            diffusion_model,
-            forward=teacache_forward_working.__get__(diffusion_model, diffusion_model.__class__)
-        )
+        if hasattr(diffusion_model, "_forward"):
+            context_patch_manager = patch.multiple(
+                diffusion_model,
+                _forward=teacache_forward_working.__get__(diffusion_model, diffusion_model.__class__)
+            )
+        else:
+            context_patch_manager = patch.multiple(
+                diffusion_model,
+                forward=teacache_forward_working.__get__(diffusion_model, diffusion_model.__class__)
+            )
+
+        old_wrapper = new_model.model_options.get("model_function_wrapper")
 
         def unet_wrapper_function(model_function, kwargs):
             input_val = kwargs["input"]
@@ -318,6 +371,8 @@ class TeaCache_Lumina2:
 
 
             with context_patch_manager:
+                if old_wrapper:
+                    return old_wrapper(model_function, {"input": input_val, "timestep": timestep, "c": c_condition_dict, "cond_or_uncond": cond_or_uncond})
                 return model_function(input_val, timestep, **c_condition_dict)
 
         new_model.set_model_unet_function_wrapper(unet_wrapper_function)
